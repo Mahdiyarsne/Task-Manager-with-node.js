@@ -4,6 +4,14 @@ const jwt = require('jsonwebtoken');
 const registerUser = async (req, res) => {
   try {
     const { email, password, fullName } = req.body;
+    const userByEmail = await User.findOne({ email }).exec();
+    if (userByEmail) {
+      res.status(400).json({
+        message: 'email is already taken',
+      });
+
+      return;
+    }
 
     const newUser = new User({ email, password, fullName });
 
@@ -27,6 +35,42 @@ const registerUser = async (req, res) => {
   }
 };
 
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const userByEmail = await User.findOne({ email }).exec();
+
+    if (!userByEmail) {
+      return res.status(400).json({
+        message: 'Email does not exist',
+      });
+    }
+    if (userByEmail.password !== password) {
+      return res.status(400).json({
+        message: 'Password is invaild',
+      });
+    }
+
+    const payload = {
+      id: userByEmail._id,
+      email: userByEmail.email,
+      fullName: userByEmail.fullName,
+    };
+
+    const accessToken = jwt.sign(payload, 'access-jwt', { expiresIn: '1d' });
+
+    return res.status(200).json({
+      accessToken,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Something went wrong',
+    });
+  }
+};
+
 module.exports = {
   registerUser,
+  loginUser,
 };
