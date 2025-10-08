@@ -1,5 +1,6 @@
 const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 const registerUser = async (req, res) => {
   try {
@@ -13,7 +14,8 @@ const registerUser = async (req, res) => {
       return;
     }
 
-    const newUser = new User({ email, password, fullName });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ email, password: hashedPassword, fullName });
 
     const payload = {
       id: newUser._id,
@@ -41,14 +43,14 @@ const loginUser = async (req, res) => {
 
     const userByEmail = await User.findOne({ email }).exec();
 
-    if (!userByEmail) {
+    const isMatchPassword = await bcrypt.compare(
+      password,
+      userByEmail.password
+    );
+
+    if (!isMatchPassword) {
       return res.status(400).json({
         message: 'Email does not exist',
-      });
-    }
-    if (userByEmail.password !== password) {
-      return res.status(400).json({
-        message: 'Password is invaild',
       });
     }
 
